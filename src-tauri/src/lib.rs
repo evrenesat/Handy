@@ -8,6 +8,8 @@ mod commands;
 mod helpers;
 mod input;
 mod llm_client;
+#[cfg(target_os = "macos")]
+mod macos_ocr;
 mod managers;
 mod overlay;
 mod settings;
