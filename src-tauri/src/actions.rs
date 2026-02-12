@@ -12,6 +12,8 @@ use crate::tray::{change_tray_icon, TrayIconState};
 use crate::utils::{
     self, show_processing_overlay, show_recording_overlay, show_transcribing_overlay,
 };
+#[cfg(target_os = "windows")]
+use crate::windows_ocr;
 use crate::ManagedToggleState;
 use ferrous_opencc::{config::BuiltinConfig, OpenCC};
 use log::{debug, error};
@@ -114,9 +116,28 @@ fn fetch_ocr_template_value() -> String {
     }
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "windows")]
 fn fetch_ocr_template_value() -> String {
-    debug!("OCR template variable is only supported on macOS; injecting empty OCR value");
+    let ocr_start = Instant::now();
+    match windows_ocr::capture_frontmost_window_ocr_text() {
+        Ok(text) => {
+            debug!(
+                "Captured OCR context in {:?} ({} chars before truncation)",
+                ocr_start.elapsed(),
+                text.chars().count()
+            );
+            text
+        }
+        Err(err) => {
+            error!("Failed to capture OCR context: {}", err);
+            String::new()
+        }
+    }
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+fn fetch_ocr_template_value() -> String {
+    debug!("OCR template variable is only supported on macOS/Windows; injecting empty OCR value");
     String::new()
 }
 
